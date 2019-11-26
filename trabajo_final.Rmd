@@ -1,0 +1,98 @@
+---
+title: "trabajo_final"
+author: "Victor Paredes"
+date: "28 Noviembre 2019"
+output:
+    prettydoc::html_pretty:
+        theme: architect
+        toc: True
+---
+# Trabajo Final - Asignatura: Business Performance Analysis
+```{r echo=FALSE, include=FALSE}
+#Paquetes
+library(xml2)
+library(prettydoc)
+library(rvest)
+library(lubridate)
+library(plyr)
+library(ggplot2)
+library(reshape2)
+library(knitr)
+library(formattable)
+library(rmdformats)
+```
+## Expresiones Regulares.
+ En esta seccion discutiremos dos paginas las cuales contienen informacion sobre las expresiones regulares, estas son las dos paginas elegidas: [Rpubs](http://rpubs.com/ydmarinb/429756), [Universitat de Barcelona](http://www.ub.edu/stat/docencia/Cursos-R/Radvanced/materials/CadenasenR.pdf).
+
+ Desde mi punto de vista, el primer documento me parece ser el mejor de los dos. En efecto, este primer documento es muy conciso puesto que muestra de primero la teoria. En esta parte de teoria lo que nos muestran son los diferentes caracteres o instrucciones que ocuparemos dentro del script para poder encontrar lo que andamos buscando, en este caso las expresiones regulares.
+Asi mismo me parece que divide muy bien los diferentes tipos de caracteres o instrucciones por ocupar lo cual lo hace mas facil de entender. Luego de haber mostrado estos diferentes argumentos, nos muestra un poco de codigo con los ejemplos de como buscar las expresiones regulares dentro de un documento. Ciertos pedazos de codigo llevan una explicaciones que nos permite entener mejor lo que se esta haciendo en el mismo. 
+ Ademas de esto, este documento muestra multiples y diferentes ejemplos dentro del contexto. Es decir que no solo nos muestra una opcion de como buscar las expresiones regulares, sino que nos ponen varios ejemplos a disposicion en caso que nosotros estemos buscando cosas mas complejas por hacer. Para finalizar el documento nos da en referencia otro documento el cual nos da mas informacion y una pagina de formulas de como buscar expresiones regulares por si no nos es suficiente. El unico inconveniente de este documento es que es poco intuitivo para personas que no conocen mucho del lenguaje y que conocen poco de este mundo.
+
+ El segundo documento me parece que es mas amigable para personas que estan conociendo un poco este mundo. Sin embargo me parecio peor que el documento anterior porque es menos intuitivo. Desde mi punto de vista, nos da una introduccion al este mundo de R pero unas cuantas lineas mas abajo hacen bucles y programacion lo cual es para mi la parte mas dificil de este mundo.
+Por otro lado, este documento no nos muestra paso por paso lo que se esta haciendo en la parte del codigo. Esto vuelve el documento dificil sobre todo si este mensaje al reproducirlo individualmente da error, es dificil interpretar a que nivel esta el error.
+Sin embargo este documento al ser un documento utilizado para enseñar a ocupar R permite encontrar respuestas a esta misma problematica interesandose un poco mas en el tema.
+
+## Markdown
+ Para esta seccion utilizaremos dos enlaces sobre Markdown para discutir. Estos son los dos enlaces que utilizaremos: [Genbeta](https://www.genbeta.com/guia-de-inicio/que-es-markdown-para-que-sirve-y-como-usarlo), [Github](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet).
+
+ Analizaremos el primer documento el cual me parecio ser el mejor de entre estos dos documentos. Este documento me parecio genial porque es muy intuitivo, te presenta las diferentes virtudes de Markdown con fotos por ejemplo como poner cursivas o como poner negritas. A parte de esto el documento te da los puntos en los que el Markdown es una herramienta que te puede ser util en el dia a dia. Asi mismo, te presenta en que tiene que tener cuidado para no cometer errores los cuales pueden ser debes en cuando un poco faciles de cometer en este tipo de herramientas.
+Otra cosa que me parecio bastante interesante dentro de este docuemnto es que al final del mismo, hacen un listado de diferentes herramientas que te pueden ayudar a hacer Markdown con una breve descripcion de como usarlo o en que te ayudan exactamente.
+Sin embargo me parecio que el documento no presenta todas las virtudes y todo lo que se puede hacer con un Markdown a un nivel avanzado, presenta muy bien las cosas basicas, ayudas, pero no presenta todas las virtudes de esta herramienta.
+
+ Si nos enfocamos en el segundo documento nos daremos cuenta que este enumera y describe mejor todas las virtudes de esta herramienta. En efecto, este documento de manera ordenada presenta como hacer cada necesidad en Markdown y si es necesario abajo de cada subtitulo pone ciertos links de los cuales uno se puede ayudar para ver mejor las cosas o tener alguna explicacion hablada de lo que estamos haciendo. Lo que me desagrado de esta pagina es que tiene poca explicacion escrita es decir, esta redactado cada ejemplo pero no tiene explicaciones como en el documento anterior.
+Otro punto positivo de este documento es que te presenta cheatsheet, un pequeño resumen de como solucionar ciertos problemas y es intuitiva, facil de comprender.
+
+## Analisis sobre el consumo de alcohol per capita.
+ Para realizar este analisis utilizaremos una tabla extraida de la Organisacion Mundial de la Salud. Esta tabla nos muestra por año desde el 2000 al 2009 la cantidad de alcohol puro consumido por cada contiente y por ciertos paises.
+
+### Grafico
+```{r echo=FALSE,global}
+# Extraccion de la tabla de consumo de alcohol per capita en litros puros de alcohol
+url <- "https://apps.who.int/gho/athena/data/GHO/SA_0000001400.html?profile=ztable&filter=COUNTRY:*;YEAR:2009;YEAR:2008;YEAR:2007;YEAR:2006;YEAR:2005;YEAR:2004;YEAR:2003;YEAR:2002;YEAR:2001;YEAR:2000"
+tabla <- read_html(url)
+tabla<- html_nodes(tabla, "table")
+tablaf <- html_table(tabla[[1]])
+# Limpieza de la tablarenombramiento de columnas
+tablaf$DATASOURCE <- NULL
+tablaf$PUBLISHSTATE <- NULL
+tablaf$`LOW RANGE`<- NULL
+tablaf$`HIGH RANGE` <- NULL
+tablaf$Comment <- NULL
+tablaf$`DISPLAY VALUE` <- NULL
+tablaf$GHO <- NULL
+# Renombramiento de columnas
+colnames(tablaf)[colnames(tablaf) =="YEAR"] <- "Ano"
+colnames(tablaf)[colnames(tablaf) == "REGION"] <- "Regiones"
+colnames(tablaf)[colnames(tablaf) == "COUNTRY"] <- "Paises"
+colnames(tablaf)[colnames(tablaf) == "ALCOHOLTYPE"] <- "Tipos_alcohol"
+colnames(tablaf)[colnames(tablaf) == "NUMERIC VALUE"] <- "Valor_numerico"
+tablaf$Ano <- parse_date_time(tablaf$Ano, "%Y")
+
+#Transformacion de la tabla
+regiones <- ddply(tablaf, .(Ano,Regiones,Tipos_alcohol),summarize, Promedio = mean(Valor_numerico))
+tipos <- ddply(tablaf,.(Ano,Tipos_alcohol),summarize,Promedio=mean(Valor_numerico))
+
+
+#Grafico
+graf1 = ggplot(tipos, aes(x = Ano, y = Promedio))+ geom_point( size=1) + geom_smooth(size = 0.5, color = "orange", method = 'loess')+ facet_grid(~Tipos_alcohol)
+graf2 = graf1 + theme(text = element_text(size = 10))+ ggtitle ("Consumo de alcohol per capita ( litros de alcohol puro )") + theme_bw()
+graf2
+```
+
+ Con este grafico nos podemos dar cuenta que el consumo de alcohol entre 2002 y 2007 aumento significativamente, sin embargo apartir de esta fecha hasta el 2009 estos valores disminuyeron hasta los 5 litros de alcohol puro. El consumo de cerveza tiene una tendencia bastante similar, pero la disminucion del consumo de este no fue tan drastica como en el resumen de todos los alcoholes. En el resto de variables los cambios no fueron tan notables. Podemos decir que de los tres alcoholes ( Cerveza, Spirits, Vino ) el consumo de cerveza supera por medio litro de alcohol puro el consumo de Spirits y asi mismo el Spirits supera por medio litro de alchohol puro al vino. Por otro lado, el vino es el alcohol con el consumo mas constante, en los ultimos año el consumo de vino se ha mantenido al rededor de un litro de alcohol puro per capita.
+
+### Tabla
+``` {r echo=FALSE}
+# Tabla.
+europa <- regiones[regiones$Regiones == "Europe" & regiones$Tipos_alcohol=="Wine",]
+rownames(europa) <- seq(length=nrow(europa))
+europaf <-format_table(europa, align = c("c","c","c","c"),format = "markdown",list(Promedio=color_bar("orange")))
+europaf
+```                                 
+
+ Esta tabla nos muestra lo que comentabamos en la parte anterior. El consumo de vino del 2000 al 2009 ha sido bastante constante. La mala noticia para esta industria es que es el alcohol menos consumido, un ejemplo de esto es el consumo de la cerveza, la cual en algun momento del año duplico el consumo. Asi mismo, notamos una tendencia a la baja del consumo de vino en Europa. Esta baja es poco significativa comparado al caso de la cerveza o del conjunto de alcoholes en el mundo.
+
+## Conclusion
+Podemos concluir que las paginas web sobre distintos elementos como las expresiones regulares o markdown no siempre nos dan la informacion que andamos buscando o como la andamos buscando. En efecto no siempre estas paginas te ofreceran lo que andas buscando ni como lo andas buscando por diferentes razones: una de ellas puede ser la redaccion de las mismas. Las paginas web pueden,seguido, tener una gran cantidad de codigo lo cual te puede llevar a una falta de conocimiento y perderte al momento de hacer lo que querias construir. Sin embargo existen muchos sitios los cuales te pueden ayudar a construir tu proyecto final sin conocer mucho el lenguaje.
+
+ En cuanto al estudio realizado sobre el consumo de alcohol per capita ( en litros de alcohol puro ), nos damos cuenta que el consumo de alcohol a nivel mundial a disminuido en los ultimos nueve años. En medio de este periodo se vivio un aumento bastante interesante el cual hizo subir el consumo per capita a su maximo de 5,3 litros de alchol puro, sin embargo esto no duro mucho puesto que no se mantuvo este nivel de consumo. Al año siguiente de haber alcanzado esta maxima se comenzo a consumir menos alcohol en el mundo, en 2009 se consumian 5 litros de alcohol puro per capita en promedio. Cuando nos interesamos en el vino consumido en Europa nos dimos cuenta que su consumo ha sido bastante constante en este contienente. Independientemente de este hecho, tambien el vino a sufrido una leve tendencia a la baja. Finalmente el vino es el alcohol que menos se consume, seguido por el spirits y lo que mas se consume en el mundo es la cerveza ( alrededor de 1,9 litros de alcohol puro per capita). 
